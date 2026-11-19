@@ -10,14 +10,53 @@ import matplotlib.pyplot as plt
 
 MM = 1.0 / 25.4
 
-# Tufte-style ribbon palette, light to dark
-BAND_OUTER = "#bdc9e1"   # min to max
-BAND_MID = "#74a9cf"     # 5th to 95th
-BAND_INNER = "#2b8cbe"   # 20th to 80th
-BAND_CORE = "#045a8d"    # 40th to 60th
 PAPER = "linen"
 RECORD_HIGH = "#d7191c"
 RECORD_LOW = "#2c7bb6"
+
+# One palette per chart, so the three graphs are told apart at a glance.
+# Each runs light to dark, outermost band first, and each is a ColorBrewer
+# sequential ramp, which keeps them legible in greyscale and safe for the
+# common forms of colour vision deficiency.
+PALETTES = {
+    # Daytime heat. The lightest step is kept darker than the linen paper,
+    # so the record-range band stays visible against the background.
+    "heat": {
+        "outer": "#fcbba1",
+        "mid": "#fc9272",
+        "inner": "#ef3b2c",
+        "core": "#a50f15",
+        "accent": "#67000d",
+    },
+    # Overnight warmth
+    "night": {
+        "outer": "#dadaeb",
+        "mid": "#bcbddc",
+        "inner": "#9e9ac8",
+        "core": "#6a51a3",
+        "accent": "#3f007d",
+    },
+    # Rainfall
+    "rain": {
+        "outer": "#bdc9e1",
+        "mid": "#74a9cf",
+        "inner": "#2b8cbe",
+        "core": "#045a8d",
+        "accent": "#023858",
+    },
+}
+
+
+def palette(name):
+    """Look up a named palette, falling back to the rainfall blues."""
+    return PALETTES.get(name, PALETTES["rain"])
+
+
+# Backwards-compatible names, pointing at the rainfall blues
+BAND_OUTER = PALETTES["rain"]["outer"]
+BAND_MID = PALETTES["rain"]["mid"]
+BAND_INNER = PALETTES["rain"]["inner"]
+BAND_CORE = PALETTES["rain"]["core"]
 
 
 def apply_style():

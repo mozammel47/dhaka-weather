@@ -35,6 +35,9 @@ jobs:
       - name: Build the daily high temperature graph
         run: python src/build_daily_high.py
 
+      - name: Build the overnight low temperature graph
+        run: python src/build_overnight_low.py
+
       - name: Build the cumulative rainfall graph
         run: python src/build_cumulative_precip.py
 

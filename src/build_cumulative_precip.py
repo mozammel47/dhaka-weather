@@ -48,8 +48,9 @@ def complete_years(frame: pd.DataFrame, plot_year: int) -> list[int]:
     return sorted(counts[counts >= 360].index.tolist())
 
 
-def build(data_path: Path, out_path: Path) -> Path:
+def build(data_path: Path, out_path: Path, palette_name: str = "rain") -> Path:
     style.apply_style()
+    colours = style.palette(palette_name)
 
     frame = load(data_path)
     plot_year = int(frame["year"].max())
@@ -93,12 +94,12 @@ def build(data_path: Path, out_path: Path) -> Path:
     axis.set_facecolor(style.PAPER)
 
     axis.fill_between(dates, envelope["lo"], envelope["hi"],
-                      color=style.BAND_OUTER, lw=0, zorder=2)
+                      color=colours["outer"], lw=0, zorder=2)
     axis.fill_between(dates, envelope["p10"], envelope["p90"],
-                      color=style.BAND_MID, lw=0, zorder=2)
+                      color=colours["mid"], lw=0, zorder=2)
     axis.fill_between(dates, envelope["p25"], envelope["p75"],
-                      color=style.BAND_INNER, lw=0, zorder=2)
-    axis.plot(dates, envelope["median"], color=style.BAND_CORE, lw=0.9, zorder=4)
+                      color=colours["inner"], lw=0, zorder=2)
+    axis.plot(dates, envelope["median"], color=colours["core"], lw=0.9, zorder=4)
 
     for year, colour in [(wettest_year, "#7b3294"), (driest_year, "#a6611a")]:
         series = past[year]
@@ -131,7 +132,7 @@ def build(data_path: Path, out_path: Path) -> Path:
                   xytext=(6, (-2 - extra / 2) * (1 if above else -1)),
                   textcoords="offset points", fontsize=6.4,
                   va="top" if above else "bottom",
-                  color=style.BAND_CORE, annotation_clip=False)
+                  color=colours["core"], annotation_clip=False)
 
     step = 500 if top > 2500 else 250
     ticks = np.arange(0, top + step, step)
@@ -181,8 +182,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data", default="data/dhaka_daily.csv")
     parser.add_argument("--out", default=OUT_DEFAULT)
+    parser.add_argument("--palette", default="rain", choices=["heat", "night", "rain"])
     args = parser.parse_args()
-    written = build(Path(args.data), Path(args.out))
+    written = build(Path(args.data), Path(args.out), palette_name=args.palette)
     print(f"Wrote {written}")
 
 

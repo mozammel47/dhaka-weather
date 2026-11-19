@@ -6,29 +6,72 @@ matplotlib and refreshed daily by GitHub Actions.
 This is a Python port of [jdjohn215/milwaukee-weather](https://github.com/jdjohn215/milwaukee-weather),
 adapted for a monsoon climate. The original uses R, ggplot2 and NOAA's GHCN-Daily
 station records. This version uses ERA5 reanalysis served by Open-Meteo, which has
-no station gaps over Bangladesh and reaches back to 1940.
+no station gaps over Bangladesh and reaches back to 1940. The graphic itself is
+much older than either repository, and the lineage is set out under
+[Where this graphic comes from](#where-this-graphic-comes-from) below.
 
 ![Daily high temperature in Dhaka](graphs/DailyHighTemp_Dhaka.png)
 
+![Overnight low temperature in Dhaka](graphs/OvernightLowTemp_Dhaka.png)
+
 ![Cumulative rainfall in Dhaka](graphs/CumulativeRainfall_Dhaka.png)
 
-*The two images above fill in after the first fetch-and-build run, whether you run
-it locally or trigger the workflow from the Actions tab.*
+*The three images above fill in after the first fetch-and-build run, whether you
+run it locally or trigger the workflow from the Actions tab.*
 
 ## What the graphs show
+
+Each graph carries its own colour ramp so the three are told apart instantly,
+warm reds for daytime heat, purples for the night, blues for rain.
 
 **Daily high temperature.** Nested ribbons give the distribution of the daily
 maximum temperature for every calendar day across the whole record, from the
 all-time range down to the 40th to 60th percentile core. The black line is the
 current year. Red and blue dots mark days where the current year broke the
 all-time record for that calendar day, judged against the unsmoothed daily
-extremes.
+extremes. In Dhaka this curve peaks in April, before the monsoon arrives, not at
+midsummer.
+
+**Overnight low temperature.** The same picture drawn from the daily minimum.
+This is the quieter half of the temperature story and often the more
+consequential one, since a hot day is survivable if the night lets the body shed
+heat. Warm nights track heat mortality more closely than daytime peaks do, and
+overnight minima tend to rise faster than daytime maxima under warming, so a
+drift upward usually shows here first.
 
 **Cumulative rainfall.** Dhaka receives most of its rain in a few monsoon months,
 so a running annual total says far more than daily bars. Bands cover the full
 historical range plus the 10th to 90th and 25th to 75th percentiles. The wettest
 and driest years on record are traced as dashed lines, and the current year is
 labelled against the median for the same date.
+
+## Where this graphic comes from
+
+This design has a long pedigree and it is worth stating plainly, since the
+version here is four steps removed from the original.
+
+1. **The New York Times, 11 January 1981, page 32.** The paper's graphics desk
+   published "New York City's Weather for 1980", a single hand-drawn panel
+   carrying roughly 2,200 numbers across temperature, precipitation and humidity,
+   with the year's daily values set against the long-run normal.
+2. **Edward Tufte, 1983.** He reproduced it on page 30 of *The Visual Display of
+   Quantitative Information* as an example of a newspaper graphic that chooses
+   detail over simplicity and succeeds. That reproduction is why the chart is
+   widely known as a Tufte graphic. He later drew his own version,
+   [New York City's Weather in 2003](https://www.edwardtufte.com/bboard/q-and-a-fetch-msg?msg_id=00014g).
+3. **Brad Boehmke, 2014.** He rebuilt the chart in R for Dayton, Ohio, adding the
+   percentile ribbons and the record-breaking day markers that this repository
+   uses. [Alex Bresler](https://gist.github.com/abresler/46c36c1a88c849b94b07)
+   adapted that code for New York City, and between them the R recipe spread
+   widely.
+4. **John D. Johnson, [jdjohn215/milwaukee-weather](https://github.com/jdjohn215/milwaukee-weather).**
+   He wrapped the chart in a GitHub Actions workflow that refetches NOAA data and
+   rebuilds the graphs every day. That automation pattern is what this repository
+   ports to Python.
+
+So the picture belongs to the NYT graphics desk and to Tufte, the percentile-band
+and record-marker treatment to Boehmke, the daily automation to Johnson, and only
+the Python, the ERA5 pipeline and the Dhaka framing are new here.
 
 ## About the data
 
@@ -60,6 +103,7 @@ pip install -r requirements.txt
 
 python src/fetch_dhaka.py                 # writes data/dhaka_daily.csv
 python src/build_daily_high.py            # writes graphs/DailyHighTemp_Dhaka.png
+python src/build_overnight_low.py         # writes graphs/OvernightLowTemp_Dhaka.png
 python src/build_cumulative_precip.py     # writes graphs/CumulativeRainfall_Dhaka.png
 ```
 
@@ -73,6 +117,7 @@ Useful flags.
 ```bash
 python src/build_daily_high.py --smooth 1        # raw daily percentiles, no smoothing
 python src/build_daily_high.py --smooth 11       # heavier smoothing of the ribbons
+python src/build_daily_high.py --palette night   # any chart in any of the three ramps
 python src/build_daily_high.py --data path.csv --out somewhere.png
 ```
 
@@ -108,9 +153,9 @@ TIMEZONE = "Asia/Dhaka"
 LOCATION_NAME = "Dhaka"
 ```
 
-Change those four values, update `TITLE` in each build script, and the rest
-follows. The rainfall y-axis step switches between 250 mm and 500 mm on its own
-depending on how wet the place is.
+Change those four values, update the `title` passed by each build script, and the
+rest follows. The rainfall y-axis step switches between 250 mm and 500 mm on its
+own depending on how wet the place is.
 
 To use a NOAA GHCN-Daily station instead, find the station code in
 [ghcnd-stations.txt](https://www1.ncdc.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt)
@@ -121,21 +166,39 @@ arrive in tenths of a degree Celsius and tenths of a millimetre, so divide both
 by ten. Nothing downstream needs to change. The Dhaka station code is
 `BGM00041923`.
 
-## Figure settings
+## Figure settings and colour
 
 `src/style.py` holds the shared matplotlib configuration. Output is 300 dpi on a
 170 mm canvas, Arial with TrueType font embedding (`pdf.fonttype` and
 `ps.fonttype` set to 42), saved without `bbox_inches="tight"` so the declared
-canvas size is exact. Change the canvas in one place and both graphs follow.
+canvas size is exact. Change the canvas in one place and all three graphs follow.
+
+The same file holds the three palettes, each a ColorBrewer sequential ramp of
+four steps running light to dark.
+
+| Name | Used by | Ramp |
+| --- | --- | --- |
+| `heat` | daily high temperature | reds |
+| `night` | overnight low temperature | purples |
+| `rain` | cumulative rainfall | blues |
+
+Sequential ramps were chosen over arbitrary colours for two reasons. They survive
+being printed in greyscale, since each step differs in lightness as well as hue,
+and they stay readable under the common forms of colour vision deficiency. The
+lightest step in each ramp is kept deliberately darker than the linen paper, so
+the outermost record-range band does not vanish into the background. Every build
+script takes `--palette`, so any chart can be drawn in any of the three.
 
 ## Layout
 
 ```
 .
 ├── src/
-│   ├── style.py                      shared matplotlib configuration
+│   ├── style.py                      canvas, fonts and the three palettes
+│   ├── ribbon.py                     shared builder for the two temperature graphs
 │   ├── fetch_dhaka.py                data retrieval and incremental caching
-│   ├── build_daily_high.py           temperature ribbon graph
+│   ├── build_daily_high.py           daily high temperature graph
+│   ├── build_overnight_low.py        overnight low temperature graph
 │   └── build_cumulative_precip.py    cumulative rainfall graph
 ├── tools/
 │   └── make_sample_data.py           synthetic series for offline testing
@@ -145,8 +208,16 @@ canvas size is exact. Change the canvas in one place and both graphs follow.
     └── update-graphs.yml             daily refresh
 ```
 
+Adding a fourth ribbon chart is a dozen lines. Copy `build_overnight_low.py`,
+point `value` at another column and give it a title, since `ribbon.py` does the
+rest.
+
 ## Credit
 
-Graph concept by [Edward Tufte](https://www.edwardtufte.com/bboard/q-and-a-fetch-msg?msg_id=00014g).
-R implementation and automation pattern by [John D. Johnson](https://github.com/jdjohn215/milwaukee-weather).
+Original graphic by the New York Times graphics desk, 11 January 1981.
+Reproduced and made famous by [Edward Tufte](https://www.edwardtufte.com/bboard/q-and-a-fetch-msg?msg_id=00014g)
+in *The Visual Display of Quantitative Information* (1983), page 30.
+Percentile bands and record markers from Brad Boehmke's R recreation (2014).
+Daily automation pattern by [John D. Johnson](https://github.com/jdjohn215/milwaukee-weather).
 Weather data by [Open-Meteo](https://open-meteo.com/), derived from ECMWF ERA5.
+Colour ramps from [ColorBrewer](https://colorbrewer2.org/) by Cynthia Brewer.
