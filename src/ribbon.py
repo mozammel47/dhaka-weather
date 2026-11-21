@@ -1,13 +1,14 @@
 """Shared builder for the Tufte-style temperature ribbon charts.
 
-Both the daytime-high and the overnight-low graphs are the same picture
-drawn from a different column with a different palette, so the logic lives
-here once and the two build scripts are thin wrappers around it.
-
 Nested ribbons show the historical distribution of a daily temperature for
 every calendar day. A black line traces the current year against that
 backdrop, and dots mark days that broke the all-time record for that
 calendar day.
+
+Three things are built from this module. The standalone daily-high and
+overnight-low graphs call `build`, which makes its own figure and adds the
+vertical key. The four-panel year figure calls `draw` directly, with
+`compact=True`, to render onto an axis it already owns.
 """
 
 from __future__ import annotations
@@ -128,24 +129,28 @@ def draw_key(fig, rect, colours: dict) -> None:
               va="bottom", color="#555555", linespacing=1.4)
 
 
-def build(
-    data_path: Path,
-    out_path: Path,
-    value: str,
-    title: str,
-    variable_note: str,
-    palette_name: str,
-    smooth: int = 5,
-    tick_step: float = 5.0,
-) -> Path:
-    """Draw one ribbon chart and write it to disk."""
-    style.apply_style()
-    colours = style.palette(palette_name)
+def month_axis(axis, plot_year: int, compact: bool) -> None:
+    """Dotted guide at the start of each month, labels at mid month."""
+    for month in range(1, 13):
+        axis.axvline(datetime(plot_year, month, 1), color="#999999", lw=0.3,
+                     ls=(0, (1, 2)), zorder=4)
+    if compact:
+        months = [1, 3, 5, 7, 9, 11]
+        axis.set_xticks([datetime(plot_year, m, 15) for m in months])
+    else:
+        axis.set_xticks([datetime(plot_year, m, 15) for m in range(1, 13)])
+    axis.xaxis.set_major_formatter(mdates.DateFormatter("%b"))
+    axis.tick_params(axis="x", length=0, labelsize=8 if not compact else 7.6)
 
-    frame = load(data_path, value)
-    plot_year = int(frame["year"].max())
-    last_date = frame["date"].max()
 
+def draw(axis, frame: pd.DataFrame, value: str, plot_year: int, colours: dict,
+         smooth: int = 5, tick_step: float = 5.0, compact: bool = False,
+         headroom: int = 0) -> dict:
+    """Render the ribbons, this year's line and record dots onto an axis.
+
+    `headroom` adds that many tick steps of empty space above the data, so a
+    caller can park a label up there without it landing on a ribbon.
+    """
     current = frame[frame["year"] == plot_year].copy()
     history = frame[frame["year"] != plot_year]
     if history.empty:
@@ -156,10 +161,7 @@ def build(
     hits = records_this_year(current, value, raw_stats)
     stats = smooth_bands(raw_stats, smooth)
 
-    fig = style.figure(width_mm=170.0, height_mm=108.0)
-    axis = fig.add_axes([0.068, 0.215, 0.660, 0.520])
     axis.set_facecolor(style.PAPER)
-
     x = stats["date"].to_numpy()
     for low, high, slot in BAND_PAIRS:
         axis.fill_between(x, stats[low], stats[high], color=colours[slot], lw=0, zorder=2)
@@ -167,47 +169,77 @@ def build(
     lowest = min(float(np.nanmin(stats["lo"])), float(current[value].min()))
     highest = max(float(np.nanmax(stats["hi"])), float(current[value].max()))
     y_lo = tick_step * np.floor(lowest / tick_step)
-    y_hi = tick_step * np.ceil(highest / tick_step)
+    y_hi = tick_step * np.ceil(highest / tick_step) + tick_step * headroom
     ticks = np.arange(y_lo, y_hi + 0.1, tick_step)
 
     # White reference lines drawn over the ribbons, as in the original
     for level in ticks:
         axis.axhline(level, color="white", lw=0.35, zorder=3)
 
-    axis.plot(current["date"], current[value], color="black", lw=1.0, zorder=5,
-              solid_capstyle="round")
+    axis.plot(current["date"], current[value], color="black",
+              lw=0.8 if compact else 1.0, zorder=5, solid_capstyle="round")
 
     for kind, dot in [("high", style.RECORD_HIGH), ("low", style.RECORD_LOW)]:
         subset = hits[hits["kind"] == kind]
         if not subset.empty:
-            axis.scatter(subset["date"], subset[value], s=11, color=dot,
-                         zorder=6, linewidths=0.4, edgecolors="white")
+            axis.scatter(subset["date"], subset[value], s=8 if compact else 11,
+                         color=dot, zorder=6, linewidths=0.4, edgecolors="white")
 
     axis.set_ylim(y_lo, y_hi)
     axis.set_yticks(ticks)
-    axis.set_yticklabels([f"{int(t)}°" for t in ticks], fontsize=8)
+    axis.set_yticklabels([f"{int(t)}°" for t in ticks],
+                         fontsize=8 if not compact else 7.6)
     axis.set_xlim(stats["date"].iloc[0], stats["date"].iloc[-1])
-
-    # Dotted guide at the start of each month, labels at mid month
-    for month in range(1, 13):
-        axis.axvline(datetime(plot_year, month, 1), color="#999999", lw=0.3,
-                     ls=(0, (1, 2)), zorder=4)
-    axis.set_xticks([datetime(plot_year, m, 15) for m in range(1, 13)])
-    axis.xaxis.set_major_formatter(mdates.DateFormatter("%b"))
-    axis.tick_params(axis="x", length=0, labelsize=8)
+    month_axis(axis, plot_year, compact)
     axis.tick_params(axis="y", length=0)
+    for spine in axis.spines.values():
+        spine.set_visible(False)
+
+    return {
+        "stats": stats,
+        "hits": hits,
+        "history": history,
+        "current": current,
+        "y_lo": y_lo,
+        "y_hi": y_hi,
+        "ticks": ticks,
+    }
+
+
+def build(
+    data_path: Path,
+    out_path: Path,
+    value: str,
+    title: str,
+    variable_note: str,
+    palette_name: str,
+    smooth: int = 5,
+    tick_step: float = 5.0,
+) -> Path:
+    """Draw one standalone ribbon chart and write it to disk."""
+    style.apply_style()
+    colours = style.palette(palette_name)
+
+    frame = load(data_path, value)
+    plot_year = int(frame["year"].max())
+    last_date = frame["date"].max()
+
+    fig = style.figure(width_mm=170.0, height_mm=108.0)
+    axis = fig.add_axes([0.068, 0.215, 0.660, 0.520])
+    info = draw(axis, frame, value, plot_year, colours, smooth, tick_step)
 
     mirror = axis.twinx()
-    mirror.set_ylim(y_lo, y_hi)
-    mirror.set_yticks(ticks)
-    mirror.set_yticklabels([f"{int(t)}°" for t in ticks], fontsize=8)
+    mirror.set_ylim(info["y_lo"], info["y_hi"])
+    mirror.set_yticks(info["ticks"])
+    mirror.set_yticklabels([f"{int(t)}°" for t in info["ticks"]], fontsize=8)
     mirror.tick_params(axis="y", length=0)
     mirror.set_facecolor("none")
-    for spine in list(axis.spines.values()) + list(mirror.spines.values()):
+    for spine in mirror.spines.values():
         spine.set_visible(False)
 
     draw_key(fig, [0.790, 0.250, 0.020, 0.430], colours)
 
+    hits = info["hits"]
     record_start = frame["date"].min()
     n_years = plot_year - int(frame["year"].min())
 

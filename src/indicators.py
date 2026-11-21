@@ -71,8 +71,8 @@ def year_lengths(frame: pd.DataFrame) -> pd.Series:
     return frame.groupby("year").size()
 
 
-def baseline_threshold(frame: pd.DataFrame, column: str) -> tuple[float, int, int]:
-    """Percentile of a column over the baseline period.
+def baseline_years(frame: pd.DataFrame) -> list[int]:
+    """Complete years making up the reference period.
 
     Falls back to the first thirty complete years on record when the data do
     not reach back far enough to cover 1961 to 1990.
@@ -84,9 +84,43 @@ def baseline_threshold(frame: pd.DataFrame, column: str) -> tuple[float, int, in
         window = complete[:30]
     if not window:
         raise SystemExit("Not enough complete years to define a baseline.")
+    return window
 
+
+def recent_years(frame: pd.DataFrame, span: int = 30) -> list[int]:
+    """The most recent complete years, for comparison against the baseline."""
+    lengths = year_lengths(frame)
+    complete = lengths[lengths >= MIN_YEAR_DAYS].index.tolist()
+    return complete[-span:]
+
+
+def baseline_threshold(frame: pd.DataFrame, column: str) -> tuple[float, int, int]:
+    """Percentile of a column over the baseline period."""
+    window = baseline_years(frame)
     values = frame.loc[frame["year"].isin(window), column].dropna()
     return float(values.quantile(BASELINE_QUANTILE)), min(window), max(window)
+
+
+def count_through(frame: pd.DataFrame, column: str, threshold: float,
+                  through_doy: int, years: list[int]) -> float:
+    """Mean count, across the given years, of qualifying days up to a date.
+
+    This is what makes a part-year number comparable. Counting the whole of
+    1975 against eleven months of this year would flatter the past.
+    """
+    subset = frame[frame["year"].isin(years) & (frame["day_of_year"] <= through_doy)]
+    if subset.empty:
+        return float("nan")
+    per_year = (subset[column] >= threshold).groupby(subset["year"]).sum()
+    return float(per_year.mean())
+
+
+def rain_through(frame: pd.DataFrame, through_doy: int, years: list[int]) -> float:
+    """Mean rainfall total, across the given years, up to a date."""
+    subset = frame[frame["year"].isin(years) & (frame["day_of_year"] <= through_doy)]
+    if subset.empty:
+        return float("nan")
+    return float(subset.groupby("year")["prcp_mm"].sum().mean())
 
 
 def annual_day_counts(frame: pd.DataFrame, column: str, threshold: float) -> pd.Series:
@@ -180,6 +214,8 @@ def build(path: Path) -> tuple[pd.DataFrame, dict]:
         "baseline_start": base_lo,
         "baseline_end": base_hi,
         "baseline_quantile": BASELINE_QUANTILE,
+        "baseline_years": baseline_years(frame),
+        "recent_years": recent_years(frame),
         "last_date": frame["date"].max(),
         "current_year": int(frame["year"].max()),
     }

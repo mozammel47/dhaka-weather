@@ -4,76 +4,90 @@ Automated climate graphs for Dhaka, Bangladesh, built in Python with matplotlib
 and refreshed daily by GitHub Actions.
 
 **Why this exists.** A phone already tells you whether to carry an umbrella. What
-it never tells you is whether Dhaka is becoming a different place to live in.
-Every panel here is chosen to answer something a weather app cannot, and the test
-applied to each one was whether it would surprise a person who has checked their
-forecast every day for a year.
+it never tells you is where today sits against the eighty-odd years behind it, or
+whether Dhaka is becoming a different place to live in. Every panel here puts the
+current year against the full record since 1940, and carries a count comparing
+this year with the 1961 to 1990 baseline by the same calendar date.
 
-The daily refresh is not the point, but it does mean each figure carries a live
-marker for where the current year stands against the whole record.
+The daily refresh is not the point, but it does mean the black line always runs
+up to yesterday.
 
-## The four indicators
+## The year against the record
 
-![Dhaka climate indicators](graphs/ClimateIndicators_Dhaka.png)
+![Dhaka this year against the record](graphs/YearAgainstRecord_Dhaka.png)
 
-| Panel | Question it answers | Ramp |
+Four panels, all on a day-of-year axis, all in the idiom of the parent
+repository. The black line is the current year. Behind it, nested ribbons give
+the distribution of that variable for every calendar day across the whole record,
+from the full range on the outside to the 40th to 60th percentile core. Red and
+blue dots mark days that broke the all-time record for that calendar day.
+
+| Panel | Variable | Ramp |
 | --- | --- | --- |
-| A, hot nights | Is it getting harder to sleep | purples |
-| B, humid heat days | Is outdoor work getting more dangerous | reds |
-| C, monsoon season | Are the rains shifting | blues |
-| D, rain concentration | Is the rain getting flashier | greens |
+| A, daily high | maximum air temperature | reds |
+| B, humid heat | apparent maximum, humidity included | yellow through brown |
+| C, overnight low | minimum air temperature | purples |
+| D, cumulative rain | running total since 1 January | blues |
 
-Heat, heat plus humidity, rain timing, rain intensity. Four distinct mechanisms,
-no redundancy between them.
+The four were chosen so that no two say the same thing.
 
-**Thresholds come from Dhaka, not from a textbook.** A hot night and a heat day
-are both defined as the 90th percentile of Dhaka's own 1961 to 1990 record. This
-matters more than it sounds. The European "tropical night" threshold of 20 °C is
-meaningless here, because nearly every Dhaka summer night clears it. Asking how
-often today's weather would have counted as unusual within living memory is the
-question that travels. The exact threshold in degrees is printed on the figure
-itself and recomputed every run, so it is never a hidden constant.
-
-**Why apparent temperature for panel B.** In a delta city the humid heat is the
+**Why apparent temperature gets a panel.** In a delta city the humid heat is the
 story and the dry-bulb reading hides it. Open-Meteo serves apparent temperature
-directly, so humidity is folded into the indicator rather than ignored.
+directly, so humidity is in the picture rather than ignored.
 
-**Why the night panel at all.** Warm nights track heat mortality more closely
-than daytime peaks, since a hot day is survivable if the night lets the body shed
+**Why the night panel.** Warm nights track heat mortality more closely than
+daytime peaks, since a hot day is survivable if the night lets the body shed
 heat. Overnight minima also tend to rise faster than daytime maxima under
 warming, so a drift upward usually shows here first.
 
-**Partial years are handled honestly.** The current year is incomplete by
-definition, so it is drawn as a dark bar labelled "to date" and excluded from
-every running mean. Only years with at least 360 daily records count as complete.
+**Why cumulative rain rather than daily bars.** Dhaka receives most of its rain
+in a few monsoon months, so a running total carries far more than a picket fence
+of daily values.
 
-### Monsoon dates, and a caveat
+### The counts in the corner of each panel
 
-There is no single agreed definition of monsoon onset. The Bangladesh
-Meteorological Department, the India Meteorological Department and the research
-literature all use different criteria, so the dates in panel C are one defensible
-rule rather than an official declaration. The rule is stated here and lives in
-the constants at the top of `src/indicators.py`.
+A day-of-year axis shows where this year sits. It cannot show whether the whole
+distribution has moved, so each panel carries that in words instead, as a count
+of qualifying days this year against the 1961 to 1990 average by the same date.
 
-- **Onset.** The first day from 1 May onward where that day plus the next six
-  bring at least 40 mm, and that day plus the next nineteen bring at least
-  100 mm. The second condition is what stops an isolated pre-monsoon
-  thunderstorm from being read as the monsoon arriving.
-- **Withdrawal.** The first day from 1 September onward whose following
-  fortnight brings less than 20 mm. Withdrawal is recorded as the day before
-  that dry spell begins.
+Two things make those counts honest.
 
-Change the numbers in one place and the whole series recomputes. If you are
-comparing against a published onset series, expect offsets of a week or more, and
-say which definition you used.
+- **The threshold comes from Dhaka, not from a textbook.** It is the 90th
+  percentile of Dhaka's own baseline record, recomputed every run and printed on
+  the figure, never a hidden constant. This matters more than it sounds. The
+  European "tropical night" threshold of 20 °C is meaningless here, because
+  nearly every Dhaka summer night clears it. Asking how often today's weather
+  would have counted as unusual within living memory is the question that
+  travels.
+- **Part year is compared with part year.** The baseline figure counts only days
+  up to the same calendar date. Comparing eleven months of this year against full
+  baseline years would flatter the past by construction.
 
-`data/indicators.csv` carries every yearly value behind the figure, so you can
-plot or model them without rerunning anything.
+### The yearly table
 
-## The seasonal graphs
+`src/indicators.py` holds no plotting code. It writes `data/indicators.csv`, one
+row per year, with hot nights, humid heat days, annual rainfall, rainfall
+concentration and monsoon onset, withdrawal and length. Nothing in the figures
+uses the monsoon columns, but they are there if you want to model or plot them
+separately.
 
-Three Tufte-style ribbon charts, kept because they show the seasonal texture that
-the indicator panel deliberately throws away.
+Monsoon dates carry a caveat. There is no single agreed definition of onset, and
+the Bangladesh Meteorological Department, the India Meteorological Department and
+the research literature all use different criteria. The rule applied here lives
+in the constants at the top of `src/indicators.py`. Onset is the first day from
+1 May onward where that day plus the next six bring at least 40 mm and that day
+plus the next nineteen bring at least 100 mm, the second condition being what
+stops an isolated pre-monsoon thunderstorm from being read as the monsoon
+arriving. Withdrawal is the day before the first fortnight from 1 September
+onward that brings less than 20 mm. If you compare against a published onset
+series, expect offsets of a week or more, and say which definition you used.
+
+## The standalone graphs
+
+The same three charts the four-panel figure draws at panel size, each on its own
+full-width canvas with the percentile key spelled out and the record dates in the
+caption. Use these when one variable is the point, and the four-panel figure when
+you want the whole year at once.
 
 ![Daily high temperature in Dhaka](graphs/DailyHighTemp_Dhaka.png)
 
@@ -174,7 +188,7 @@ pip install -r requirements.txt
 
 python src/fetch_dhaka.py                 # writes data/dhaka_daily.csv
 python src/indicators.py                  # writes data/indicators.csv
-python src/build_indicators.py            # writes graphs/ClimateIndicators_Dhaka.png
+python src/build_year_panels.py           # writes graphs/YearAgainstRecord_Dhaka.png
 python src/build_daily_high.py            # writes graphs/DailyHighTemp_Dhaka.png
 python src/build_overnight_low.py         # writes graphs/OvernightLowTemp_Dhaka.png
 python src/build_cumulative_precip.py     # writes graphs/CumulativeRainfall_Dhaka.png
@@ -257,22 +271,26 @@ canvas size is exact. Change the canvas in one place and all three graphs follow
 The same file holds the four palettes, each a ColorBrewer sequential ramp of four
 steps running light to dark.
 
-| Name | Ramp | Seasonal graph | Indicator panel |
-| --- | --- | --- | --- |
-| `heat` | reds | daily high temperature | B, humid heat days |
-| `night` | purples | overnight low temperature | A, hot nights |
-| `rain` | blues | cumulative rainfall | C, monsoon season |
-| `burst` | greens | none | D, rain concentration |
+| Name | Ramp | Used by |
+| --- | --- | --- |
+| `heat` | reds | daily high temperature, panel A |
+| `humid` | yellow through brown | apparent maximum, panel B |
+| `night` | purples | overnight low temperature, panel C |
+| `rain` | blues | cumulative rainfall, panel D |
+| `burst` | greens | spare, reachable through `--palette` |
+
+Humid heat is deliberately yellow through brown rather than a second red, since
+it sits next to the daytime heat panel and the two must not be confused.
 
 Sequential ramps were chosen over arbitrary colours for two reasons. They survive
 being printed in greyscale, since each step differs in lightness as well as hue,
 and they stay readable under the common forms of colour vision deficiency. The
 lightest step in each ramp is kept deliberately darker than the linen paper, so
 the outermost record-range band does not vanish into the background. Every
-seasonal build script takes `--palette`, so any of those charts can be drawn in
-any of the four.
+standalone build script takes `--palette`, so any of those charts can be drawn in
+any of the five.
 
-The indicator figure uses `apply_panel_style()` rather than the single-chart
+The four-panel figure uses `apply_panel_style()` rather than the single-chart
 style, with slightly smaller tick and title type, since four panels on one
 170 mm canvas crowd at full publication size.
 
@@ -281,11 +299,12 @@ style, with slightly smaller tick and title type, since four panels on one
 ```
 .
 ├── src/
-│   ├── style.py                      canvas, fonts and the four palettes
+│   ├── style.py                      canvas, fonts and the five palettes
 │   ├── fetch_dhaka.py                data retrieval and incremental caching
-│   ├── indicators.py                 the four yearly metrics and their thresholds
-│   ├── build_indicators.py           four-panel indicator figure
-│   ├── ribbon.py                     shared builder for the two temperature graphs
+│   ├── indicators.py                 yearly metrics, thresholds, no plotting
+│   ├── ribbon.py                     percentile ribbons, draws onto any axis
+│   ├── cumulative.py                 rainfall envelope, draws onto any axis
+│   ├── build_year_panels.py          four-panel year figure
 │   ├── build_daily_high.py           daily high temperature graph
 │   ├── build_overnight_low.py        overnight low temperature graph
 │   └── build_cumulative_precip.py    cumulative rainfall graph
@@ -297,11 +316,15 @@ style, with slightly smaller tick and title type, since four panels on one
     └── update-graphs.yml             daily refresh
 ```
 
-`indicators.py` holds no plotting code and `build_indicators.py` holds no
-statistics, so a threshold can be argued with and changed without touching the
-figure. Adding another ribbon chart is a dozen lines. Copy
-`build_overnight_low.py`, point `value` at another column and give it a title,
-since `ribbon.py` does the rest.
+`ribbon.py` and `cumulative.py` each expose a `draw` function that renders onto
+an axis the caller supplies, with a `compact` flag for panel size. The standalone
+scripts and the four-panel figure therefore draw from the same code rather than
+two copies that drift apart. `indicators.py` holds no plotting at all, so a
+threshold can be argued with and changed without touching any figure.
+
+Adding another ribbon panel is a dozen lines. Copy `build_overnight_low.py`,
+point `value` at another column and give it a title, since `ribbon.py` does the
+rest.
 
 ## Credit
 

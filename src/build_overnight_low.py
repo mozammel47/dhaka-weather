@@ -25,7 +25,7 @@ def main() -> None:
     parser.add_argument("--out", default=OUT_DEFAULT)
     parser.add_argument("--smooth", type=int, default=5,
                         help="centred smoothing window for the ribbons in days, 1 disables it")
-    parser.add_argument("--palette", default="night", choices=["heat", "night", "rain"])
+    parser.add_argument("--palette", default="night", choices=["heat", "night", "humid", "rain", "burst"])
     args = parser.parse_args()
 
     written = ribbon.build(

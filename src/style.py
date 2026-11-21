@@ -44,7 +44,17 @@ PALETTES = {
         "core": "#045a8d",
         "accent": "#023858",
     },
-    # Rainfall intensity, kept clearly apart from the rainfall blues
+    # Humid heat. Yellow through brown rather than another red, so it is not
+    # mistaken for the daytime heat panel sitting next to it.
+    "humid": {
+        "outer": "#fee391",
+        "mid": "#fec44f",
+        "inner": "#d95f0e",
+        "core": "#993404",
+        "accent": "#662506",
+    },
+    # Rainfall intensity, kept clearly apart from the rainfall blues.
+    # Spare, reachable through --palette on any chart.
     "burst": {
         "outer": "#b2e2e2",
         "mid": "#66c2a4",
