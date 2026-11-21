@@ -44,6 +44,14 @@ PALETTES = {
         "core": "#045a8d",
         "accent": "#023858",
     },
+    # Rainfall intensity, kept clearly apart from the rainfall blues
+    "burst": {
+        "outer": "#b2e2e2",
+        "mid": "#66c2a4",
+        "inner": "#2ca25f",
+        "core": "#006d2c",
+        "accent": "#00441b",
+    },
 }
 
 
@@ -81,6 +89,26 @@ def apply_style():
         "axes.linewidth": 0.6,
         "axes.spines.top": False,
         "axes.spines.right": False,
+    })
+
+
+PANEL_LABEL_SIZE = 14
+
+
+def apply_panel_style():
+    """Publication defaults for the multi-panel indicator figure.
+
+    Larger type than the single web graphs, since this figure is meant to
+    survive being dropped into a slide or a manuscript at 170 mm wide.
+    """
+    apply_style()
+    mpl.rcParams.update({
+        "font.size": 12,
+        "axes.titlesize": 13,
+        "axes.labelsize": 12,
+        "xtick.labelsize": 12,
+        "ytick.labelsize": 12,
+        "legend.fontsize": 12,
     })
 
 

@@ -32,6 +32,11 @@ def make(start_year: int, end: date, seed: int = 11) -> pd.DataFrame:
     tmin = tmax - (11.5 - 5.0 * np.exp(-0.5 * ((doy - 200) / 55.0) ** 2))
     tmin = tmin + rng.normal(0, 1.0, len(dates))
 
+    # Apparent temperature, humid for roughly April to September and close to
+    # the dry-bulb reading in the dry winter
+    humid_window = np.exp(-0.5 * ((doy - 180) / 70.0) ** 2)
+    app_tmax = tmax - 1.5 + 9.0 * humid_window + rng.normal(0, 0.8, len(dates))
+
     # Monsoon dominated rainfall, dry winter
     wet_season = np.exp(-0.5 * ((doy - 196) / 48.0) ** 2)
     rain_odds = 0.04 + 0.66 * wet_season
@@ -47,6 +52,7 @@ def make(start_year: int, end: date, seed: int = 11) -> pd.DataFrame:
         "day_of_year": doy,
         "tmax_c": np.round(tmax, 1),
         "tmin_c": np.round(tmin, 1),
+        "app_tmax_c": np.round(app_tmax, 1),
         "prcp_mm": np.round(prcp, 1),
     })
     return frame

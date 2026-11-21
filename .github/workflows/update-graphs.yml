@@ -32,6 +32,12 @@ jobs:
       - name: Fetch the latest daily data
         run: python src/fetch_dhaka.py
 
+      - name: Compute the climate indicators
+        run: python src/indicators.py
+
+      - name: Build the four-panel indicator figure
+        run: python src/build_indicators.py
+
       - name: Build the daily high temperature graph
         run: python src/build_daily_high.py
 

@@ -39,14 +39,19 @@ ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 
 RECORD_START = date(1940, 1, 1)
-DAILY_VARS = ["temperature_2m_max", "temperature_2m_min", "precipitation_sum"]
+DAILY_VARS = ["temperature_2m_max", "temperature_2m_min", "precipitation_sum",
+              "apparent_temperature_max"]
 
 COLUMN_MAP = {
     "time": "date",
     "temperature_2m_max": "tmax_c",
     "temperature_2m_min": "tmin_c",
     "precipitation_sum": "prcp_mm",
+    "apparent_temperature_max": "app_tmax_c",
 }
+
+# A cached file written before any of these existed is refetched in full
+REQUIRED_COLUMNS = ["tmax_c", "tmin_c", "prcp_mm", "app_tmax_c"]
 
 # Trailing days refetched on every incremental run
 REFRESH_WINDOW_DAYS = 45
@@ -131,7 +136,8 @@ def add_calendar_columns(frame: pd.DataFrame) -> pd.DataFrame:
     frame["month"] = stamps.dt.month
     frame["day"] = stamps.dt.day
     frame["day_of_year"] = stamps.dt.dayofyear
-    ordered = ["date", "year", "month", "day", "day_of_year", "tmax_c", "tmin_c", "prcp_mm"]
+    ordered = ["date", "year", "month", "day", "day_of_year",
+               "tmax_c", "tmin_c", "app_tmax_c", "prcp_mm"]
     return frame[[c for c in ordered if c in frame.columns]]
 
 
@@ -162,6 +168,10 @@ def main() -> None:
     if out_path.exists() and not args.full:
         existing = pd.read_csv(out_path, parse_dates=["date"])
         existing["date"] = existing["date"].dt.date
+        missing = [c for c in REQUIRED_COLUMNS if c not in existing.columns]
+        if missing:
+            print(f"Cached file is missing {', '.join(missing)}, refetching the full record")
+            existing = pd.DataFrame()
 
     if existing.empty:
         print(f"Full pull for {LOCATION_NAME}, {RECORD_START} to {yesterday}")
