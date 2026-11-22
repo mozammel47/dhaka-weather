@@ -3,6 +3,9 @@
 Automated climate graphs for Dhaka, Bangladesh, built in Python with matplotlib
 and refreshed daily by GitHub Actions.
 
+By [Mozammel Hoque](https://github.com/mozammel47). MIT licensed, see
+[Licence](#licence).
+
 **Why this exists.** A phone already tells you whether to carry an umbrella. What
 it never tells you is where today sits against the eighty-odd years behind it, or
 whether Dhaka is becoming a different place to live in. Every panel here puts the
@@ -335,3 +338,14 @@ Percentile bands and record markers from Brad Boehmke's R recreation (2014).
 Daily automation pattern by [John D. Johnson](https://github.com/jdjohn215/milwaukee-weather).
 Weather data by [Open-Meteo](https://open-meteo.com/), derived from ECMWF ERA5.
 Colour ramps from [ColorBrewer](https://colorbrewer2.org/) by Cynthia Brewer.
+
+## Licence
+
+The code in this repository is MIT licensed. See [LICENSE](LICENSE).
+
+The licence covers the code only. Two things sit outside it. The weather data is
+Open-Meteo's, served under their own terms, free for non-commercial use and
+asking that you credit them and link back when you publish a graph. And the
+graphic itself is a design with a long pedigree, set out under
+[Where this graphic comes from](#where-this-graphic-comes-from), so credit that
+lineage rather than this repository if you reuse the idea.
